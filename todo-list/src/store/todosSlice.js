@@ -1,10 +1,18 @@
 import { createSlice } from '@reduxjs/toolkit'
 
+export const CATEGORIES = [
+  { key: 'work',     label: 'Work' },
+  { key: 'personal', label: 'Personal' },
+  { key: 'health',   label: 'Health' },
+  { key: 'shopping', label: 'Shopping' },
+  { key: 'other',    label: 'Other' },
+]
+
 const initialState = [
-  { id: 1, text: 'Design the landing page layout', done: false },
-  { id: 2, text: 'Set up the React project with Vite', done: true },
-  { id: 3, text: 'Integrate Tailwind CSS', done: true },
-  { id: 4, text: 'Build the Todo List component', done: false },
+  { id: 1, text: 'Design the landing page layout', done: false, category: 'work' },
+  { id: 2, text: 'Set up the React project with Vite', done: true,  category: 'work' },
+  { id: 3, text: 'Integrate Tailwind CSS', done: true,  category: 'work' },
+  { id: 4, text: 'Build the Todo List component', done: false, category: 'work' },
 ]
 
 const todosSlice = createSlice({
@@ -12,7 +20,7 @@ const todosSlice = createSlice({
   initialState,
   reducers: {
     addTodo: (state, action) => {
-      state.push({ id: Date.now(), text: action.payload, done: false })
+      state.push({ id: Date.now(), text: action.payload.text, category: action.payload.category || 'other', done: false })
     },
     toggleTodo: (state, action) => {
       const todo = state.find(t => t.id === action.payload)

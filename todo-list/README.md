@@ -1,6 +1,6 @@
 # Todo List
 
-![Todo List](../todo-list.png)
+![Todo List](src/assets/todo-list.png)
 
 A React todo list app with Redux state management, Tailwind CSS styling, and unit tests.
 

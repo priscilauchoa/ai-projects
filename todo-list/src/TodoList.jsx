@@ -8,6 +8,8 @@ import {
   Plus,
   ClipboardList,
   X,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react'
 
 const CATEGORY_COLORS = {
@@ -24,6 +26,8 @@ export default function TodoList() {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const [category, setCategory] = useState('other')
+  const [activeFilter, setActiveFilter] = useState('all')
+  const [sortOrder, setSortOrder] = useState('desc')
 
   const openModal = () => setIsOpen(true)
 
@@ -47,21 +51,30 @@ export default function TodoList() {
 
   const done = todos.filter(t => t.done).length
 
+  const presentCategories = CATEGORIES.filter(cat => todos.some(t => t.category === cat.key))
+
   const grouped = CATEGORIES
-    .map(cat => ({ ...cat, items: todos.filter(t => t.category === cat.key) }))
+    .map(cat => ({
+      ...cat,
+      items: todos
+        .filter(t => t.category === cat.key)
+        .slice()
+        .sort((a, b) => sortOrder === 'desc' ? b.id - a.id : a.id - b.id),
+    }))
     .filter(group => group.items.length > 0)
+    .filter(group => activeFilter === 'all' || group.key === activeFilter)
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden">
 
         {/* Header */}
-        <div className="bg-indigo-600 px-6 py-5 flex items-center justify-between">
+        <div className="bg-violet-600 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ClipboardList className="text-white" size={24} />
             <div>
               <h1 className="text-xl font-semibold text-white">My Tasks</h1>
-              <p className="text-indigo-200 text-sm">
+              <p className="text-violet-200 text-sm">
                 {done} of {todos.length} completed
               </p>
             </div>
@@ -77,18 +90,64 @@ export default function TodoList() {
         </div>
 
         {/* Progress bar */}
-        <div className="h-1.5 bg-indigo-100">
+        <div className="h-1.5 bg-violet-100">
           <div
-            className="h-full bg-indigo-500 transition-all duration-300"
+            className="h-full bg-violet-500 transition-all duration-300"
             style={{ width: todos.length ? `${(done / todos.length) * 100}%` : '0%' }}
           />
         </div>
 
+        {/* Filter & sort toolbar */}
+        {todos.length > 0 && (
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={() => setActiveFilter('all')}
+                aria-label="Filter: All"
+                className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  activeFilter === 'all'
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                All
+              </button>
+              {presentCategories.map(cat => (
+                <button
+                  key={cat.key}
+                  onClick={() => setActiveFilter(cat.key)}
+                  aria-label={`Filter: ${cat.label}`}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    activeFilter === cat.key
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')}
+              aria-label={sortOrder === 'desc' ? 'Sort oldest first' : 'Sort newest first'}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-violet-600 transition-colors shrink-0"
+            >
+              {sortOrder === 'desc' ? <ArrowDown size={13} /> : <ArrowUp size={13} />}
+              {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+            </button>
+          </div>
+        )}
+
         {/* List */}
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-80 overflow-y-auto">
           {todos.length === 0 && (
             <p className="py-8 text-center text-gray-400 text-sm">
               No tasks yet. Click &ldquo;Add task&rdquo; to get started!
+            </p>
+          )}
+          {todos.length > 0 && grouped.length === 0 && (
+            <p className="py-8 text-center text-gray-400 text-sm">
+              No tasks in this category.
             </p>
           )}
           {grouped.map(group => (
@@ -104,11 +163,11 @@ export default function TodoList() {
                   <li key={todo.id} className="flex items-center gap-3 py-3 group">
                     <button
                       onClick={() => dispatch(toggleTodo(todo.id))}
-                      className="shrink-0 text-gray-300 hover:text-indigo-500 transition-colors"
+                      className="shrink-0 text-gray-300 hover:text-violet-500 transition-colors"
                       aria-label={todo.done ? 'Mark incomplete' : 'Mark complete'}
                     >
                       {todo.done
-                        ? <CheckCircle2 size={22} className="text-indigo-500" />
+                        ? <CheckCircle2 size={22} className="text-violet-500" />
                         : <Circle size={22} />}
                     </button>
 
@@ -169,12 +228,12 @@ export default function TodoList() {
                 onKeyDown={handleKey}
                 placeholder="Add a new task…"
                 autoFocus
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
               />
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
               >
                 {CATEGORIES.map(c => (
                   <option key={c.key} value={c.key}>{c.label}</option>
@@ -191,7 +250,7 @@ export default function TodoList() {
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-colors"
               >
                 Save
               </button>

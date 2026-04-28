@@ -10,6 +10,8 @@ const preloadedState = {
   ],
 }
 
+const openModal = () => fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+
 describe('TodoList', () => {
   it('renders existing tasks', () => {
     renderWithStore(<TodoList />, { preloadedState })
@@ -24,20 +26,48 @@ describe('TodoList', () => {
     expect(screen.getByText('1 of 2 completed')).toBeInTheDocument()
   })
 
+  it('opens modal when Add task button is clicked', () => {
+    renderWithStore(<TodoList />, { preloadedState })
+
+    openModal()
+
+    expect(screen.getByText('New Task')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Add a new task…')).toBeInTheDocument()
+  })
+
+  it('closes modal when Cancel is clicked', () => {
+    renderWithStore(<TodoList />, { preloadedState })
+
+    openModal()
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+
+    expect(screen.queryByText('New Task')).not.toBeInTheDocument()
+  })
+
+  it('closes modal when X button is clicked', () => {
+    renderWithStore(<TodoList />, { preloadedState })
+
+    openModal()
+    fireEvent.click(screen.getByRole('button', { name: /close modal/i }))
+
+    expect(screen.queryByText('New Task')).not.toBeInTheDocument()
+  })
+
   it('adds a new task', () => {
     renderWithStore(<TodoList />, { preloadedState })
 
-    const input = screen.getByPlaceholderText('Add a new task…')
-    fireEvent.change(input, { target: { value: 'New task' } })
-    fireEvent.click(screen.getByRole('button', { name: /add/i }))
+    openModal()
+    fireEvent.change(screen.getByPlaceholderText('Add a new task…'), { target: { value: 'New task' } })
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(screen.getByText('New task')).toBeInTheDocument()
-    expect(input.value).toBe('')
+    expect(screen.queryByText('New Task')).not.toBeInTheDocument()
   })
 
   it('adds a task by pressing Enter', () => {
     renderWithStore(<TodoList />, { preloadedState })
 
+    openModal()
     const input = screen.getByPlaceholderText('Add a new task…')
     fireEvent.change(input, { target: { value: 'Enter task' } })
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -49,9 +79,21 @@ describe('TodoList', () => {
     renderWithStore(<TodoList />, { preloadedState })
 
     const before = screen.getAllByRole('listitem').length
-    fireEvent.click(screen.getByRole('button', { name: /add/i }))
+    openModal()
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
 
     expect(screen.getAllByRole('listitem').length).toBe(before)
+  })
+
+  it('clears input and closes modal after saving', () => {
+    renderWithStore(<TodoList />, { preloadedState })
+
+    openModal()
+    fireEvent.change(screen.getByPlaceholderText('Add a new task…'), { target: { value: 'Temp task' } })
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    openModal()
+    expect(screen.getByPlaceholderText('Add a new task…').value).toBe('')
   })
 
   it('toggles a task as done', () => {
@@ -95,7 +137,7 @@ describe('TodoList', () => {
   it('shows empty state when no tasks', () => {
     renderWithStore(<TodoList />, { preloadedState: { todos: [] } })
 
-    expect(screen.getByText('No tasks yet. Add one above!')).toBeInTheDocument()
+    expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument()
   })
 
   it('does not show clear completed button when nothing is done', () => {
@@ -109,30 +151,29 @@ describe('TodoList', () => {
     it('renders category badges for groups present in state', () => {
       renderWithStore(<TodoList />, { preloadedState })
 
-      // getAllByText because the label also appears in the <select> options
-      expect(screen.getAllByText('Shopping').length).toBeGreaterThan(0)
-      expect(screen.getAllByText('Work').length).toBeGreaterThan(0)
+      expect(screen.getByText('Shopping')).toBeInTheDocument()
+      expect(screen.getByText('Work')).toBeInTheDocument()
     })
 
     it('todos appear under their category group', () => {
       renderWithStore(<TodoList />, { preloadedState })
 
-      // Use the badge <span>, not the <option> in the select
-      const shoppingBadge = screen.getAllByText('Shopping').find(el => el.tagName === 'SPAN')
+      const shoppingBadge = screen.getByText('Shopping')
       expect(shoppingBadge.closest('section')).toHaveTextContent('Buy groceries')
 
-      const workBadge = screen.getAllByText('Work').find(el => el.tagName === 'SPAN')
+      const workBadge = screen.getByText('Work')
       expect(workBadge.closest('section')).toHaveTextContent('Write tests')
     })
 
     it('adding a todo with a selected category places it in the right group', () => {
       renderWithStore(<TodoList />, { preloadedState })
 
+      openModal()
       fireEvent.change(screen.getByRole('combobox'), { target: { value: 'health' } })
       fireEvent.change(screen.getByPlaceholderText('Add a new task…'), { target: { value: 'Go running' } })
-      fireEvent.click(screen.getByRole('button', { name: /add/i }))
+      fireEvent.click(screen.getByRole('button', { name: /save/i }))
 
-      const healthBadge = screen.getAllByText('Health').find(el => el.tagName === 'SPAN')
+      const healthBadge = screen.getByText('Health')
       expect(healthBadge.closest('section')).toHaveTextContent('Go running')
     })
 
@@ -146,7 +187,7 @@ describe('TodoList', () => {
     it('shows empty state when todos list is empty', () => {
       renderWithStore(<TodoList />, { preloadedState: { todos: [] } })
 
-      expect(screen.getByText('No tasks yet. Add one above!')).toBeInTheDocument()
+      expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument()
       expect(document.querySelectorAll('section').length).toBe(0)
     })
   })

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { addTodo, toggleTodo, deleteTodo, clearCompleted } from './store/todosSlice'
-import { CATEGORIES } from './store/todosSlice'
+import { addTodo, toggleTodo, deleteTodo, clearCompleted, CATEGORIES } from './store/todosSlice'
 import {
   CheckCircle2,
   Circle,
   Trash2,
   Plus,
   ClipboardList,
+  X,
 } from 'lucide-react'
 
 const CATEGORY_COLORS = {
@@ -21,19 +21,28 @@ const CATEGORY_COLORS = {
 export default function TodoList() {
   const todos = useSelector(state => state.todos)
   const dispatch = useDispatch()
+  const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const [category, setCategory] = useState('other')
 
-  const handleAdd = () => {
-    const text = input.trim()
-    if (!text) return
-    dispatch(addTodo({ text, category }))
+  const openModal = () => setIsOpen(true)
+
+  const closeModal = () => {
+    setIsOpen(false)
     setInput('')
     setCategory('other')
   }
 
+  const handleSave = () => {
+    const text = input.trim()
+    if (!text) return
+    dispatch(addTodo({ text, category }))
+    closeModal()
+  }
+
   const handleKey = e => {
-    if (e.key === 'Enter') handleAdd()
+    if (e.key === 'Enter') handleSave()
+    if (e.key === 'Escape') closeModal()
   }
 
   const done = todos.filter(t => t.done).length
@@ -47,14 +56,24 @@ export default function TodoList() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden">
 
         {/* Header */}
-        <div className="bg-indigo-600 px-6 py-5 flex items-center gap-3">
-          <ClipboardList className="text-white" size={24} />
-          <div>
-            <h1 className="text-xl font-semibold text-white">My Tasks</h1>
-            <p className="text-indigo-200 text-sm">
-              {done} of {todos.length} completed
-            </p>
+        <div className="bg-indigo-600 px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ClipboardList className="text-white" size={24} />
+            <div>
+              <h1 className="text-xl font-semibold text-white">My Tasks</h1>
+              <p className="text-indigo-200 text-sm">
+                {done} of {todos.length} completed
+              </p>
+            </div>
           </div>
+          <button
+            onClick={openModal}
+            aria-label="Add task"
+            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+          >
+            <Plus size={16} />
+            Add task
+          </button>
         </div>
 
         {/* Progress bar */}
@@ -65,41 +84,11 @@ export default function TodoList() {
           />
         </div>
 
-        {/* Input */}
-        <div className="px-6 py-4 border-b border-gray-100 flex flex-col gap-2">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKey}
-              placeholder="Add a new task…"
-              className="flex-1 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-            />
-            <button
-              onClick={handleAdd}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus size={16} />
-              Add
-            </button>
-          </div>
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-          >
-            {CATEGORIES.map(c => (
-              <option key={c.key} value={c.key}>{c.label}</option>
-            ))}
-          </select>
-        </div>
-
         {/* List */}
-        <div className="max-h-80 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto">
           {todos.length === 0 && (
             <p className="py-8 text-center text-gray-400 text-sm">
-              No tasks yet. Add one above!
+              No tasks yet. Click &ldquo;Add task&rdquo; to get started!
             </p>
           )}
           {grouped.map(group => (
@@ -153,6 +142,63 @@ export default function TodoList() {
           </div>
         )}
       </div>
+
+      {/* Modal */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={e => { if (e.target === e.currentTarget) closeModal() }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-semibold text-gray-800">New Task</h2>
+              <button
+                onClick={closeModal}
+                aria-label="Close modal"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <input
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKey}
+                placeholder="Add a new task…"
+                autoFocus
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              />
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              >
+                {CATEGORIES.map(c => (
+                  <option key={c.key} value={c.key}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
